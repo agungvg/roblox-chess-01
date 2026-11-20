@@ -1290,7 +1290,65 @@ game:BindToClose(function()
 	end
 end)
 
+-- ---- arena decor ----------------------------------------------------------
+-- Lyso: the arena must not look plain. Corner pillars, parade flags,
+-- bushes, and two giant statue pieces (King + Queen) flanking the parade.
+local function decorPart(name: string, size: Vector3, color: Color3, pos: Vector3, shape: Enum.PartType?, rot: CFrame?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Color = color
+	p.Anchored = true
+	p.CanCollide = false
+	if shape ~= nil then
+		p.Shape = shape
+	end
+	p.CFrame = CFrame.new(pos) * (rot or CFrame.new())
+	p.Parent = workspace
+	return p
+end
+
+local function buildArenaDecor()
+	local gold = Color3.fromRGB(212, 175, 55)
+	local dark = Color3.fromRGB(45, 45, 55)
+	local marble = Color3.fromRGB(245, 235, 210)
+	local upright = CFrame.Angles(0, 0, math.rad(90))
+	-- Four corner pillars with gold caps.
+	for _, c in ipairs({ { -40, -40 }, { 40, -40 }, { -40, 40 }, { 40, 40 } }) do
+		decorPart("PillarBase", Vector3.new(2.6, 0.8, 2.6), marble, Vector3.new(c[1], 0.4, c[2]))
+		decorPart("Pillar", Vector3.new(1.6, 10, 1.6), dark, Vector3.new(c[1], 5, c[2]))
+		decorPart("PillarCap", Vector3.new(2.0, 2.0, 2.0), gold, Vector3.new(c[1], 11, c[2]), Enum.PartType.Ball)
+	end
+	-- Five flag poles with coloured flags behind the parade.
+	local flagColors = {
+		Color3.fromRGB(255, 190, 40),
+		Color3.fromRGB(70, 140, 255),
+		Color3.fromRGB(90, 200, 110),
+		Color3.fromRGB(255, 90, 200),
+		Color3.fromRGB(170, 90, 240),
+	}
+	for i, x in ipairs({ -24, -12, 0, 12, 24 }) do
+		decorPart("FlagPole", Vector3.new(0.3, 7, 0.3), dark, Vector3.new(x, 3.5, -31), Enum.PartType.Cylinder, upright)
+		decorPart("ParadeFlag", Vector3.new(2.2, 1.2, 0.1), flagColors[i], Vector3.new(x + 1.2, 6.4, -31))
+	end
+	-- Bushes near the corners, clear of all boards.
+	for _, b in ipairs({ { -58, 38 }, { 58, 38 }, { -58, -38 }, { 58, -38 } }) do
+		decorPart("Bush", Vector3.new(2.4, 2.4, 2.4), Color3.fromRGB(60, 160, 80), Vector3.new(b[1], 1.2, b[2]), Enum.PartType.Ball)
+	end
+	-- Two giant statues flanking the parade (real pieces, extra scale).
+	local king = PieceBuilder.buildPiece("King", "Legendary", "Plain", CFrame.new(-38, 0, -30), 1.6)
+	king.Name = "StatueKing"
+	king.Parent = workspace
+	local queen = PieceBuilder.buildPiece("Queen", "Legendary", "Plain", CFrame.new(38, 0, -30), 1.6)
+	queen.Name = "StatueQueen"
+	queen.Parent = workspace
+	-- Gold plinths under the statues.
+	decorPart("StatuePlinth", Vector3.new(7, 0.6, 7), marble, Vector3.new(-38, 0.3, -30))
+	decorPart("StatuePlinth", Vector3.new(7, 0.6, 7), marble, Vector3.new(38, 0.3, -30))
+end
+
 math.randomseed(os.time())
+buildArenaDecor()
 initRivals()
 startParade()
 startEventLoop()

@@ -12,11 +12,18 @@ local PieceBuilder = {}
 
 local GOLD = Color3.fromRGB(212, 175, 55)
 local DARK_METAL = Color3.fromRGB(45, 45, 55)
+local SILVER = Color3.fromRGB(200, 200, 210)
+local CRIMSON = Color3.fromRGB(200, 40, 60)
+
+-- Uniform model scale for the piece currently being built. newPart scales
+-- sizes and weldTo scales offsets by this, so a piece scales uniformly
+-- about the ground point (Lyso: pieces TALLER than the ~5-stud player).
+local currentScale = 1
 
 local function newPart(name: string, size: Vector3, color: Color3, shape: Enum.PartType?): Part
 	local p = Instance.new("Part")
 	p.Name = name
-	p.Size = size
+	p.Size = size * currentScale
 	p.Color = color
 	p.Material = Enum.Material.SmoothPlastic
 	p.Anchored = false
@@ -30,7 +37,9 @@ local function newPart(name: string, size: Vector3, color: Color3, shape: Enum.P
 end
 
 local function weldTo(part: Part, primary: Part, offset: CFrame)
-	part.CFrame = primary.CFrame * offset
+	-- Scale the offset position so the whole assembly scales uniformly
+	-- about the torso; rotation is preserved via offset.Rotation.
+	part.CFrame = primary.CFrame * CFrame.new(offset.Position * currentScale) * offset.Rotation
 	local w = Instance.new("WeldConstraint")
 	w.Part0 = primary
 	w.Part1 = part
@@ -63,7 +72,7 @@ local function buildHeadTop(model: Model, primary: Part, pieceType: PieceData.Pi
 		-- Mitre: tall pointed cap from two wedges + a dark slit.
 		local capL = Instance.new("WedgePart")
 		capL.Name = "MitreL"
-		capL.Size = Vector3.new(1.0, 1.4, 0.9)
+		capL.Size = Vector3.new(1.0, 1.4, 0.9) * currentScale
 		capL.Color = color
 		capL.Material = Enum.Material.SmoothPlastic
 		capL.Anchored = false
@@ -71,7 +80,7 @@ local function buildHeadTop(model: Model, primary: Part, pieceType: PieceData.Pi
 		weldTo(capL, primary, CFrame.new(-0.25, topY + 0.7, 0))
 		local capR = Instance.new("WedgePart")
 		capR.Name = "MitreR"
-		capR.Size = Vector3.new(1.0, 1.4, 0.9)
+		capR.Size = Vector3.new(1.0, 1.4, 0.9) * currentScale
 		capR.Color = color
 		capR.Material = Enum.Material.SmoothPlastic
 		capR.Anchored = false
@@ -118,12 +127,72 @@ local function buildHeadTop(model: Model, primary: Part, pieceType: PieceData.Pi
 	end
 end
 
+-- Accessories per type (Lyso: characters must not be plain). Built with
+-- newPart/weldTo, so they scale uniformly with the piece. Numbers below
+-- are unscaled design units; `topY` is the torso-top height (unscaled).
+local function buildAccessories(model: Model, primary: Part, pieceType: PieceData.PieceType, color: Color3, topY: number)
+	if pieceType == "Pawn" then
+		-- Round shield on the left arm + short sword in the right hand.
+		local shield = newPart("Shield", Vector3.new(0.2, 1.4, 1.4), DARK_METAL, Enum.PartType.Cylinder)
+		weldTo(shield, primary, CFrame.new(-1.35, -0.1, 0.25) * CFrame.Angles(0, math.rad(90), 0))
+		local boss = newPart("ShieldBoss", Vector3.new(0.24, 0.5, 0.5), GOLD, Enum.PartType.Cylinder)
+		weldTo(boss, primary, CFrame.new(-1.5, -0.1, 0.25) * CFrame.Angles(0, math.rad(90), 0))
+		local blade = newPart("SwordBlade", Vector3.new(0.22, 1.4, 0.12), SILVER)
+		weldTo(blade, primary, CFrame.new(1.3, -0.2, 0.3))
+		local hilt = newPart("SwordHilt", Vector3.new(0.5, 0.18, 0.18), DARK_METAL)
+		weldTo(hilt, primary, CFrame.new(1.3, -0.95, 0.3))
+	elseif pieceType == "Knight" then
+		-- Red plume on the horse head + a lance in the right hand.
+		local plume = newPart("Plume", Vector3.new(0.3, 0.8, 1.0), CRIMSON)
+		weldTo(plume, primary, CFrame.new(0, topY + 2.1, -0.1))
+		local lance = newPart("Lance", Vector3.new(0.2, 3.4, 0.2), DARK_METAL, Enum.PartType.Cylinder)
+		weldTo(lance, primary, CFrame.new(1.3, 0.6, 0.25) * CFrame.Angles(0, 0, math.rad(90)))
+		local tip = newPart("LanceTip", Vector3.new(0.4, 0.4, 0.4), GOLD, Enum.PartType.Ball)
+		weldTo(tip, primary, CFrame.new(1.3, 2.35, 0.25))
+	elseif pieceType == "Bishop" then
+		-- Crozier staff with a gold orb, held in the right hand.
+		local staff = newPart("Crozier", Vector3.new(0.2, 3.6, 0.2), DARK_METAL, Enum.PartType.Cylinder)
+		weldTo(staff, primary, CFrame.new(1.3, 0.7, 0.25) * CFrame.Angles(0, 0, math.rad(90)))
+		local orb = newPart("CrozierOrb", Vector3.new(0.55, 0.55, 0.55), GOLD, Enum.PartType.Ball)
+		weldTo(orb, primary, CFrame.new(1.3, 2.55, 0.25))
+	elseif pieceType == "Rook" then
+		-- Banner flag above the battlement + gold shoulder pads.
+		local pole = newPart("BannerPole", Vector3.new(0.16, 2.4, 0.16), DARK_METAL, Enum.PartType.Cylinder)
+		weldTo(pole, primary, CFrame.new(0, topY + 1.9, 0) * CFrame.Angles(0, 0, math.rad(90)))
+		local flag = newPart("BannerFlag", Vector3.new(1.3, 0.8, 0.08), color)
+		weldTo(flag, primary, CFrame.new(0.7, topY + 2.7, 0))
+		local padL = newPart("PadL", Vector3.new(0.8, 0.45, 0.8), GOLD, Enum.PartType.Ball)
+		weldTo(padL, primary, CFrame.new(-1.05, 0.35, 0))
+		local padR = newPart("PadR", Vector3.new(0.8, 0.45, 0.8), GOLD, Enum.PartType.Ball)
+		weldTo(padR, primary, CFrame.new(1.05, 0.35, 0))
+	elseif pieceType == "Queen" then
+		-- Scepter with gold orb + a gold waist band.
+		local rod = newPart("Scepter", Vector3.new(0.2, 3.2, 0.2), DARK_METAL, Enum.PartType.Cylinder)
+		weldTo(rod, primary, CFrame.new(1.3, 0.6, 0.25) * CFrame.Angles(0, 0, math.rad(90)))
+		local orb = newPart("ScepterOrb", Vector3.new(0.55, 0.55, 0.55), GOLD, Enum.PartType.Ball)
+		weldTo(orb, primary, CFrame.new(1.3, 2.25, 0.25))
+		local band = newPart("WaistBand", Vector3.new(1.8, 0.28, 1.1), GOLD)
+		weldTo(band, primary, CFrame.new(0, -0.12, 0))
+	else -- King
+		-- Greatsword in the right hand + gold epaulettes.
+		local blade = newPart("GreatBlade", Vector3.new(0.35, 2.4, 0.14), SILVER)
+		weldTo(blade, primary, CFrame.new(1.3, 0.7, 0.3))
+		local hilt = newPart("GreatHilt", Vector3.new(0.6, 0.2, 0.2), DARK_METAL)
+		weldTo(hilt, primary, CFrame.new(1.3, -0.55, 0.3))
+		local epL = newPart("EpauletteL", Vector3.new(0.8, 0.45, 0.8), GOLD, Enum.PartType.Ball)
+		weldTo(epL, primary, CFrame.new(-1.1, 0.32, 0))
+		local epR = newPart("EpauletteR", Vector3.new(0.8, 0.45, 0.8), GOLD, Enum.PartType.Ball)
+		weldTo(epR, primary, CFrame.new(1.1, 0.32, 0))
+	end
+end
+
 -- Builds the model at `at` (a CFrame whose Y is the ground top). Returns the Model.
 function PieceBuilder.buildPiece(
 	pieceType: PieceData.PieceType,
 	rarity: PieceData.RarityName,
 	mutation: string,
-	at: CFrame
+	at: CFrame,
+	extraScale: number?
 ): Model
 	local info = PieceData.TYPES[pieceType]
 	local rarityInfo = PieceData.rarityInfo(rarity)
@@ -133,14 +202,21 @@ function PieceBuilder.buildPiece(
 	elseif mutation == "Gold-Plated" then
 		color = GOLD
 	end
+	local s = info.scale * (extraScale or 1)
 
 	local model = Instance.new("Model")
 	model.Name = PieceData.pieceName(pieceType, rarity)
+	model:SetAttribute("PieceScale", s)
+
+	-- Uniform scale: every size (newPart) and offset (weldTo) below is
+	-- multiplied by `s`, so the piece keeps its proportions and towers
+	-- over the ~5-stud player (pawn ~6.2, king ~10.0 studs).
+	currentScale = s
 
 	-- Torso is the PrimaryPart: everything welds to it.
 	local torso = newPart("Torso", Vector3.new(1.7, info.height * 0.42, 1.0), color)
 	torso.Anchored = true
-	torso.CFrame = at * CFrame.new(0, info.height * 0.5, 0)
+	torso.CFrame = at * CFrame.new(0, info.height * 0.5 * s, 0)
 	torso.Parent = model
 	model.PrimaryPart = torso
 
@@ -162,6 +238,7 @@ function PieceBuilder.buildPiece(
 	weldTo(base, torso, CFrame.new(0, -info.height * 0.44, 0) * CFrame.Angles(0, 0, math.rad(90)))
 
 	buildHeadTop(model, torso, pieceType, color, info.height * 0.21)
+	buildAccessories(model, torso, pieceType, color, info.height * 0.21)
 
 	-- Face: two eyes on the torso front so the piece reads as a character.
 	local eyeL = newPart("EyeL", Vector3.new(0.16, 0.16, 0.1), Color3.fromRGB(20, 20, 20))
@@ -169,6 +246,7 @@ function PieceBuilder.buildPiece(
 	local eyeR = newPart("EyeR", Vector3.new(0.16, 0.16, 0.1), Color3.fromRGB(20, 20, 20))
 	weldTo(eyeR, torso, CFrame.new(0.35, info.height * 0.1, 0.51))
 
+	currentScale = 1
 	return model
 end
 
@@ -179,7 +257,9 @@ function PieceBuilder.attachLabel(model: Model, lines: { string }, accent: Color
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "PieceLabel"
 	gui.Size = UDim2.fromOffset(220, 22 + 20 * #lines)
-	gui.StudsOffset = Vector3.new(0, 4.6, 0)
+	-- Label floats above the head; its offset scales with the piece.
+	local labelScale = tonumber(model:GetAttribute("PieceScale")) or 1
+	gui.StudsOffset = Vector3.new(0, 4.6 * labelScale, 0)
 	gui.AlwaysOnTop = false
 	gui.Parent = primary
 	for i, text in ipairs(lines) do
@@ -209,13 +289,13 @@ function PieceBuilder.tweenPieceTo(
 	assert(primary ~= nil, "piece needs a PrimaryPart to tween")
 	local start = primary.CFrame.Position
 	local info = PieceData.TYPES[pieceType :: PieceData.PieceType]
-	local target = CFrame.new(targetGround + Vector3.new(0, info.height * 0.5, 0))
+	local target = CFrame.new(targetGround + Vector3.new(0, info.height * 0.5 * info.scale, 0))
 	local dist = (target.Position - start).Magnitude
 	local duration = math.max(0.15, dist / speed)
 	local ts = game:GetService("TweenService")
 	if pieceType == "Knight" and dist > 4 then
 		-- Two chained tweens through a raised midpoint: the L-jump arc.
-		local mid = CFrame.new((start + target.Position) / 2 + Vector3.new(0, 2, 0))
+		local mid = CFrame.new((start + target.Position) / 2 + Vector3.new(0, 2 * info.scale, 0))
 		local up = ts:Create(primary, TweenInfo.new(duration / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = mid })
 		local down = ts:Create(primary, TweenInfo.new(duration / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = target })
 		up.Completed:Connect(function()

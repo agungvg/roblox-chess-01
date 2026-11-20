@@ -20,6 +20,7 @@ export type TypeInfo = {
 	basePrice: number,
 	baseIncome: number, -- $/s before rarity / mutation / rebirth
 	height: number, -- studs tall, drives the silhouette scale
+	scale: number, -- uniform model scale (Lyso: pieces TALLER than the ~5-stud player)
 	glyph: string, -- chess glyph used by the Codex + labels
 	flavour: string,
 }
@@ -33,12 +34,12 @@ export type MutationInfo = {
 local PieceData = {}
 
 PieceData.TYPES = {
-	Pawn = { name = "Pawn", basePrice = 120, baseIncome = 12, height = 2.6, glyph = "♟", flavour = "Marches one square at a time, dreams of promotion." },
-	Knight = { name = "Knight", basePrice = 900, baseIncome = 95, height = 3.4, glyph = "♞", flavour = "Jumps in an L and lands like it meant to." },
-	Bishop = { name = "Bishop", basePrice = 2600, baseIncome = 260, height = 3.8, glyph = "♝", flavour = "Slides diagonally. Never leaves its own colour." },
-	Rook = { name = "Rook", basePrice = 7000, baseIncome = 640, height = 3.6, glyph = "♜", flavour = "A castle that learned to walk. Slow, loud, fair." },
-	Queen = { name = "Queen", basePrice = 25000, baseIncome = 2100, height = 4.6, glyph = "♛", flavour = "Moves any way she likes. So do you, now." },
-	King = { name = "King", basePrice = 120000, baseIncome = 8800, height = 5.0, glyph = "♚", flavour = "Checkmate is not a threat. It is a schedule." },
+	Pawn = { name = "Pawn", basePrice = 120, baseIncome = 12, height = 2.6, scale = 2.1, glyph = "♟", flavour = "Marches one square at a time, dreams of promotion." },
+	Knight = { name = "Knight", basePrice = 900, baseIncome = 95, height = 3.4, scale = 1.7, glyph = "♞", flavour = "Jumps in an L and lands like it meant to." },
+	Bishop = { name = "Bishop", basePrice = 2600, baseIncome = 260, height = 3.8, scale = 1.85, glyph = "♝", flavour = "Slides diagonally. Never leaves its own colour." },
+	Rook = { name = "Rook", basePrice = 7000, baseIncome = 640, height = 3.6, scale = 2.0, glyph = "♜", flavour = "A castle that learned to walk. Slow, loud, fair." },
+	Queen = { name = "Queen", basePrice = 25000, baseIncome = 2100, height = 4.6, scale = 2.0, glyph = "♛", flavour = "Moves any way she likes. So do you, now." },
+	King = { name = "King", basePrice = 120000, baseIncome = 8800, height = 5.0, scale = 1.9, glyph = "♚", flavour = "Checkmate is not a threat. It is a schedule." },
 } :: { [PieceType]: TypeInfo }
 
 PieceData.RARITIES = {
